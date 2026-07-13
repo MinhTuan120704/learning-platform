@@ -15,4 +15,5 @@ type UserRepository interface {
 	UpdateEmail(ctx context.Context, id uuid.UUID, email string) error
 	UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	AssignRole(ctx context.Context, id, roleID uuid.UUID) error
 }

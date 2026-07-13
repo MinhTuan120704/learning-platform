@@ -60,13 +60,13 @@ func (r *UserRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.Us
 
 func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
 	const q = `
-		SELECT id, name, email, email_verified_at, created_at, updated_at
+		SELECT id, name, email, password_hash, email_verified_at, created_at, updated_at
 		FROM "user" 
 		WHERE email = $1 AND deleted_at IS NULL`
 
 	var row userRow
 	err := r.db.QueryRow(ctx, q, email).Scan(
-		&row.ID, &row.Name, &row.Email, &row.EmailVerifiedAt, &row.CreatedAt, &row.UpdatedAt,
+		&row.ID, &row.Name, &row.Email, &row.PasswordHash, &row.EmailVerifiedAt, &row.CreatedAt, &row.UpdatedAt,
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -142,4 +142,15 @@ func (r *UserRepository) findRolesByUserID(ctx context.Context, userID uuid.UUID
 	}
 
 	return roles, rows.Err()
+}
+
+func (r *UserRepository) AssignRole(ctx context.Context, userID, roleID uuid.UUID) error {
+	const q = `
+		INSERT INTO user_role (user_id, role_id)
+		VALUES ($1, $2)
+		ON CONFLICT (user_id, role_id) DO NOTHING	
+	`
+
+	_, err := r.db.Exec(ctx, q, userID, roleID)
+	return err
 }

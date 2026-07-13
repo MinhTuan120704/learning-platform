@@ -12,8 +12,6 @@ func NewHealthHandler() *HealthHandler {
 	return &HealthHandler{}
 }
 
-func (h *HealthHandler) Health(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"status": "ok",
-	})
+func (h *HealthHandler) Check(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
