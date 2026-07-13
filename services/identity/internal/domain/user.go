@@ -15,5 +15,5 @@ type User struct {
 	Roles           []Role
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
-	DeleltedAt      *time.Time
+	DeletedAt       *time.Time
 }

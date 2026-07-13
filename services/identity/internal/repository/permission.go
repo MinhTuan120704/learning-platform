@@ -8,7 +8,10 @@ import (
 )
 
 type PermissionRepository interface {
+	Create(ctx context.Context, permission *domain.Permission) error
 	FindByID(ctx context.Context, id uuid.UUID) (*domain.Permission, error)
 	FindByCode(ctx context.Context, code string) (*domain.Permission, error)
 	List(ctx context.Context) ([]domain.Permission, error)
+	Update(ctx context.Context, permission *domain.Permission) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }
