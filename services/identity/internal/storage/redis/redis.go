@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/MinhTuan120704/learning-platform/services/identity/internal/config"
 	goredis "github.com/redis/go-redis/v9"
 )
 
@@ -13,12 +12,13 @@ type Client struct {
 	Client *goredis.Client
 }
 
-func New(cfg config.RedisConfig) (*Client, error) {
-	rdb := goredis.NewClient(&goredis.Options{
-		Addr:     fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
-		Password: cfg.Password,
-		DB:       cfg.DB,
-	})
+func New(redisURL string) (*Client, error) {
+	opts, err := goredis.ParseURL(redisURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid redis url: %w", err)
+	}
+
+	rdb := goredis.NewClient(opts)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

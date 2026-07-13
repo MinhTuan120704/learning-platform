@@ -18,7 +18,7 @@ func New() (*Application, error) {
 		return nil, err
 	}
 
-	redisClient, err := redis.New(cfg.Redis)
+	redisClient, err := redis.New(cfg.Redis.URL)
 	if err != nil {
 		return nil, err
 	}
