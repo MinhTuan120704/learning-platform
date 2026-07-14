@@ -53,12 +53,11 @@ JOIN permission p ON p.code IN (
     'course.create',
     'course.publish',
     'course.manage',
+    'section.create',
+    'section.manage',
     'lesson.create',
-    'lesson.manage',
-    'quiz.create',
-    'quiz.manage',
-    'assignment.grade',
-    'enrollment.manage'
+    'lesson.manage'
+
 )
 WHERE r.name = 'instructor';
 
@@ -66,7 +65,6 @@ INSERT INTO role_permission (role_id, permission_id)
 SELECT r.id, p.id
 FROM role r
 JOIN permission p ON p.code IN (
-    'enrollment.self',
-    'assignment.submit'
+    'enrollment.self'
 )
 WHERE r.name = 'student';

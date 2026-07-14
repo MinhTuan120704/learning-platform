@@ -38,6 +38,23 @@ learning-platform
                  chưa dùng để cache)
 ```
 
+### Lý do lựa chọn kiến trúc
+
+Dự án được xây dựng theo kiến trúc **Microservices**, trong đó mỗi service phụ trách một domain nghiệp vụ riêng (`identity`, `course`, `learning`). Cách thiết kế này giúp các service độc lập trong phát triển, triển khai và mở rộng, đồng thời giảm sự phụ thuộc giữa các thành phần của hệ thống.
+
+Bên trong mỗi service, mã nguồn được tổ chức theo **Clean Architecture** kết hợp với **Domain-Driven Design (DDD)** nhằm tách biệt tầng nghiệp vụ, tầng truy cập dữ liệu và tầng giao tiếp HTTP. Điều này giúp mã nguồn rõ ràng, dễ bảo trì, dễ kiểm thử và thuận tiện khi thay đổi công nghệ hoặc mở rộng tính năng trong tương lai.
+
+### Lý do lựa chọn PostgreSQL
+
+Mỗi service sử dụng một cơ sở dữ liệu PostgreSQL riêng (**Database per Service**) để đảm bảo tính độc lập giữa các service và tránh chia sẻ dữ liệu trực tiếp.
+
+PostgreSQL được lựa chọn vì:
+- Đảm bảo tính nhất quán dữ liệu nhờ hỗ trợ đầy đủ các thuộc tính **ACID**.
+- Hiệu năng ổn định và phù hợp với dữ liệu quan hệ của hệ thống học trực tuyến.
+- Hỗ trợ nhiều tính năng mạnh như Transaction, Foreign Key, Index và JSONB.
+- Là hệ quản trị cơ sở dữ liệu mã nguồn mở, phổ biến và được sử dụng rộng rãi trong các hệ thống backend.
+
+
 **Giao tiếp giữa các service:**
 - `course` → `identity`: gọi `GET /internal/permissions?user_id=` (header `X-Internal-Api-Key`) để lấy role/permission, cache kết quả trong Redis DB1 (TTL 2 phút).
 - `learning` → `course`: gọi `GET /api/v1/courses/:courseId` (public) để lấy thông tin course khi cần hiển thị chi tiết. `learning` không gọi `identity`.
@@ -47,7 +64,7 @@ Service chính:
 
 | Service | Port | Database | Vai trò |
 | --- | ---: | --- | --- |
-| `identity` | `8081` | `identity_db` | Auth, user, role, permission, internal permission API |
+| `identity` | `8081` | `identity_db` | Authentication, JWT, user profile, role, permission, internal permission API |
 | `course` | `8082` | `course_db` | Course catalog, category, section, lesson |
 | `learning` | `8083` | `learning_db` | User enrollment |
 | `redis` | `6379` | DB `0/1/2` | Refresh token (dự phòng), permission cache, cache dùng chung |
@@ -170,66 +187,161 @@ Base URL: `http://localhost:8081`
 | `GET` | `/health` | Không | Health check |
 | `POST` | `/api/v1/auth/register` | Không | Tạo user |
 | `POST` | `/api/v1/auth/login` | Không | Đăng nhập |
-| `POST` | `/api/v1/auth/refresh` | Không | Refresh token |
-| `POST` | `/api/v1/auth/logout` | Không | Revoke refresh token |
-| `GET` | `/internal/permissions?user_id={uuid}` | `X-Internal-Api-Key` | Lấy role + permission user |
+| `POST` | `/api/v1/auth/refresh` | Không | Refresh access token |
+| `POST` | `/api/v1/auth/logout` | Có (JWT) | Đăng xuất, revoke refresh token |
+| `GET` | `/api/v1/users/me` | Có (JWT) | Lấy thông tin người dùng hiện tại |
+| `PATCH` | `/api/v1/users/me` | Có (JWT) | Cập nhật thông tin người dùng hiện tại |
+| `GET` | `/internal/permissions?user_id={uuid}` | `X-Internal-Api-Key` | Lấy role và permission của user cho các service nội bộ |
 
-```bash
-curl -X POST http://localhost:8081/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@test.com","password":"Password123!"}'
-```
+### Đăng ký
 
 ```bash
 curl -X POST http://localhost:8081/api/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"name":"Test User","email":"user@test.com","password":"Password123!"}'
+  -d '{
+    "name":"Test User",
+    "email":"user@test.com",
+    "password":"Password123!"
+  }'
 ```
 
-### Course service
+---
 
-Base URL: `http://localhost:8082`
-
-Public endpoints:
-
-| Method | Path | Mô tả |
-| --- | --- | --- |
-| `GET` | `/health` | Health check |
-| `GET` | `/api/v1/categories` | Danh sách category |
-| `GET` | `/api/v1/categories/:id` | Chi tiết category |
-| `GET` | `/api/v1/courses` | Danh sách course |
-| `GET` | `/api/v1/courses/:courseId` | Chi tiết course |
-| `GET` | `/api/v1/courses/:courseId/sections` | Section trong course |
-| `GET` | `/api/v1/sections/:sectionId/lessons` | Lesson trong section |
-| `GET` | `/api/v1/lessons/:id` | Chi tiết lesson |
-
-Protected endpoints dùng header `X-User-ID`. Service gọi `identity` qua `/internal/permissions` và cache permission trong Redis 2 phút.
-
-| Method | Path | Permission |
-| --- | --- | --- |
-| `POST` | `/api/v1/categories` | `category.create` |
-| `PATCH` | `/api/v1/categories/:id` | `category.manage` |
-| `DELETE` | `/api/v1/categories/:id` | `category.manage` |
-| `POST` | `/api/v1/courses` | `course.create` |
-| `PATCH` | `/api/v1/courses/:courseId` | `course.manage` |
-| `DELETE` | `/api/v1/courses/:courseId` | `course.manage` |
-| `POST` | `/api/v1/courses/:courseId/sections` | `section.create` |
-| `PATCH` | `/api/v1/sections/:id` | `section.manage` |
-| `DELETE` | `/api/v1/sections/:id` | `section.manage` |
-| `POST` | `/api/v1/sections/:sectionId/lessons` | `lesson.create` |
-| `PATCH` | `/api/v1/lessons/:id` | `lesson.manage` |
-| `DELETE` | `/api/v1/lessons/:id` | `lesson.manage` |
+### Đăng nhập
 
 ```bash
-curl -X POST http://localhost:8082/api/v1/courses \
+curl -X POST http://localhost:8081/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -H "X-User-ID: <admin-or-instructor-user-id>" \
   -d '{
-    "category_id": "11111111-1111-1111-1111-111111111111",
-    "title": "Go REST API",
-    "slug": "go-rest-api",
-    "description": "Xay dung REST API bang Go"
+    "email":"admin@test.com",
+    "password":"Password123!"
   }'
+```
+
+Ví dụ response:
+
+```json
+{
+  "access_token": "<access_token>",
+  "refresh_token": "<refresh_token>",
+  "expires_in": 900
+}
+```
+
+---
+
+### Refresh Token
+
+```bash
+curl -X POST http://localhost:8081/api/v1/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refresh_token":"<refresh_token>"
+  }'
+```
+
+---
+
+### Đăng xuất
+
+```bash
+curl -X POST http://localhost:8081/api/v1/auth/logout \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refresh_token":"<refresh_token>"
+  }'
+```
+
+---
+
+### Lấy thông tin người dùng hiện tại
+
+```bash
+curl http://localhost:8081/api/v1/users/me \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+Ví dụ response:
+
+```json
+{
+  "id": "4d5e8b87-88b4-4bb5-aafb-2d0d2d87f9d0",
+  "name": "Admin User",
+  "email": "admin@test.com",
+  "roles": [
+    "admin"
+  ]
+}
+```
+
+---
+
+### Cập nhật thông tin người dùng
+
+Đổi tên:
+
+```bash
+curl -X PATCH http://localhost:8081/api/v1/users/me \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name":"Nguyen Van A"
+  }'
+```
+
+Đổi tên và email:
+
+```bash
+curl -X PATCH http://localhost:8081/api/v1/users/me \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name":"Nguyen Van A",
+    "email":"newemail@test.com"
+  }'
+```
+
+Ví dụ response:
+
+```json
+{
+  "id": "4d5e8b87-88b4-4bb5-aafb-2d0d2d87f9d0",
+  "name": "Nguyen Van A",
+  "email": "newemail@test.com",
+  "roles": [
+    "admin"
+  ]
+}
+```
+
+---
+
+### Internal Permission API
+
+API này chỉ dành cho các service nội bộ (ví dụ `course`) và yêu cầu header `X-Internal-Api-Key`.
+
+```bash
+curl "http://localhost:8081/internal/permissions?user_id=<USER_ID>" \
+  -H "X-Internal-Api-Key: <INTERNAL_API_KEY>"
+```
+
+Ví dụ response:
+
+```json
+{
+  "roles": [
+    "admin"
+  ],
+  "permissions": [
+    "course.create",
+    "course.manage",
+    "section.create",
+    "section.manage",
+    "lesson.create",
+    "lesson.manage"
+  ]
+}
 ```
 
 ### Learning service
