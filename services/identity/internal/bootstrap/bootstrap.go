@@ -46,18 +46,21 @@ func New() (*Application, error) {
 
 	// Service
 	authSvc := service.NewAuthService(userRepo, roleRepo, passwordSvc, jwtSvc, refreshSvc)
+	userSvc := service.NewUserService(userRepo)
 	permissionSvc := service.NewPermissionService(permissionRepo)
 
 	// Handler
 	authHandler := handler.NewAuthHandler(authSvc)
+	userHandler := handler.NewUserHandler(userSvc)
 	permissionHandler := handler.NewPermissionHandler(permissionSvc)
 	healthHandler := handler.NewHealthHandler()
 
 	router := httpserver.NewRouter(httpserver.RouterDeps{
 		Auth:       authHandler,
+		User:       userHandler,
 		Permission: permissionHandler,
 		Health:     healthHandler,
-	}, cfg.HTTP.InternalApiKey)
+	}, cfg.HTTP.InternalApiKey, jwtSvc)
 
 	app := &Application{
 		Config: cfg,

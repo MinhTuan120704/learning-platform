@@ -57,3 +57,10 @@ func validateEmail(email string) error {
 
 	return nil
 }
+
+func ValidateUpdateUser(req dto.UpdateUserRequest) error {
+	if req.Name != nil && *req.Name == "" {
+		return ErrNameRequired
+	}
+	return nil
+}
