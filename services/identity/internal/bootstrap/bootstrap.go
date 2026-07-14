@@ -33,6 +33,7 @@ func New() (*Application, error) {
 	// Repository
 	userRepo := repopg.NewUserRepository(db.Pool)
 	roleRepo := repopg.NewRoleRepository(db.Pool)
+	permissionRepo := repopg.NewPermissionRepository(db.Pool)
 
 	// Security
 	passwordSvc := security.NewPasswordService()
@@ -45,15 +46,18 @@ func New() (*Application, error) {
 
 	// Service
 	authSvc := service.NewAuthService(userRepo, roleRepo, passwordSvc, jwtSvc, refreshSvc)
+	permissionSvc := service.NewPermissionService(permissionRepo)
 
 	// Handler
 	authHandler := handler.NewAuthHandler(authSvc)
+	permissionHandler := handler.NewPermissionHandler(permissionSvc)
 	healthHandler := handler.NewHealthHandler()
 
 	router := httpserver.NewRouter(httpserver.RouterDeps{
-		Auth:   authHandler,
-		Health: healthHandler,
-	})
+		Auth:       authHandler,
+		Permission: permissionHandler,
+		Health:     healthHandler,
+	}, cfg.HTTP.InternalApiKey)
 
 	app := &Application{
 		Config: cfg,

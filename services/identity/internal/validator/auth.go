@@ -4,7 +4,7 @@ import (
 	"errors"
 	"regexp"
 
-	authdto "github.com/MinhTuan120704/learning-platform/services/identity/internal/dto/auth"
+	"github.com/MinhTuan120704/learning-platform/services/identity/internal/dto"
 )
 
 var (
@@ -18,7 +18,7 @@ const minPasswordLen = 8
 
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
-func ValidateRegister(req authdto.RegisterRequest) error {
+func ValidateRegister(req dto.RegisterRequest) error {
 	if req.Name == "" {
 		return ErrNameRequired
 	}
@@ -34,7 +34,7 @@ func ValidateRegister(req authdto.RegisterRequest) error {
 	return nil
 }
 
-func ValidateLogin(req authdto.LoginRequest) error {
+func ValidateLogin(req dto.LoginRequest) error {
 	if err := validateEmail(req.Email); err != nil {
 		return err
 	}

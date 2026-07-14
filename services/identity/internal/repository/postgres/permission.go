@@ -47,6 +47,59 @@ func (r *PermissionRepository) FindByID(ctx context.Context, id uuid.UUID) (*dom
 	return mapPermission(row), nil
 }
 
+func (r *PermissionRepository) FindByUserID(ctx context.Context, userID uuid.UUID) ([]string, []string, error) {
+	const roleQuery = `
+		SELECT r.name
+		FROM role r
+		JOIN user_role ur ON ur.role_id = r.id
+		WHERE ur.user_id = $1
+	`
+	roleRows, err := r.db.Query(ctx, roleQuery, userID)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer roleRows.Close()
+
+	var roles []string
+	for roleRows.Next() {
+		var name string
+		if err := roleRows.Scan(&name); err != nil {
+			return nil, nil, err
+		}
+		roles = append(roles, name)
+	}
+	if err := roleRows.Err(); err != nil {
+		return nil, nil, err
+	}
+
+	const permQuery = `
+		SELECT DISTINCT p.code
+		FROM permission p
+		JOIN role_permission rp ON rp.permission_id = p.id
+		JOIN user_role ur ON ur.role_id = rp.role_id
+		WHERE ur.user_id = $1
+	`
+	permRows, err := r.db.Query(ctx, permQuery, userID)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer permRows.Close()
+
+	var perms []string
+	for permRows.Next() {
+		var code string
+		if err := permRows.Scan(&code); err != nil {
+			return nil, nil, err
+		}
+		perms = append(perms, code)
+	}
+	if err := permRows.Err(); err != nil {
+		return nil, nil, err
+	}
+
+	return roles, perms, nil
+}
+
 func (r *PermissionRepository) FindByCode(ctx context.Context, code string) (*domain.Permission, error) {
 	const q = `
 		SELECT id, code, description, created_at, updated_at

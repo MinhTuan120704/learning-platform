@@ -2,11 +2,10 @@ package handler
 
 import (
 	"errors"
-
 	"net/http"
 
 	"github.com/MinhTuan120704/learning-platform/services/identity/internal/domain"
-	authdto "github.com/MinhTuan120704/learning-platform/services/identity/internal/dto/auth"
+	"github.com/MinhTuan120704/learning-platform/services/identity/internal/dto"
 	"github.com/MinhTuan120704/learning-platform/services/identity/internal/service"
 	"github.com/MinhTuan120704/learning-platform/services/identity/internal/token"
 	"github.com/MinhTuan120704/learning-platform/services/identity/internal/validator"
@@ -22,7 +21,7 @@ func NewAuthHandler(auth *service.AuthService) *AuthHandler {
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
-	var req authdto.RegisterRequest
+	var req dto.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
@@ -44,7 +43,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		roleNames = append(roleNames, r.Name)
 	}
 
-	c.JSON(http.StatusCreated, authdto.UserResponse{
+	c.JSON(http.StatusCreated, dto.UserResponse{
 		ID:    user.ID,
 		Name:  user.Name,
 		Email: user.Email,
@@ -53,7 +52,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req authdto.LoginRequest
+	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
@@ -70,7 +69,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, authdto.AuthResponse{
+	c.JSON(http.StatusOK, dto.AuthResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    int64(expiresAt.Unix()),
@@ -78,7 +77,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 func (h *AuthHandler) Refresh(c *gin.Context) {
-	var req authdto.RefreshRequest
+	var req dto.RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
@@ -94,7 +93,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, authdto.AuthResponse{
+	c.JSON(http.StatusOK, dto.AuthResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    int64(expiresAt.Unix()),
@@ -102,7 +101,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	var req authdto.RefreshRequest
+	var req dto.RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return

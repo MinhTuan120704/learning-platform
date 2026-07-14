@@ -1,7 +1,7 @@
 package config
 
 type DatabaseConfig struct {
-	Host     string `env:"POSTGRES_HOST" envDefault:"postgres-identity"`
+	Host     string `env:"POSTGRES_HOST" envDefault:"postgres-course"`
 	Port     int    `env:"POSTGRES_PORT" envDefault:"5432"`
 	User     string `env:"POSTGRES_USER,required"`
 	Password string `env:"POSTGRES_PASSWORD"`

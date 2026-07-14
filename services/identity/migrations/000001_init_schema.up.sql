@@ -52,18 +52,17 @@ INSERT INTO role (name, description) VALUES
     ('student', 'Học viên, tham gia khóa học');
  
 INSERT INTO permission (code, description) VALUES
+    ('category.create', 'Tạo danh mục mới'),
+    ('category.manage', 'Quản lý danh mục (sửa/xóa)'),
 
     ('course.create', 'Tạo khóa học mới'),
-    ('course.publish', 'Xuất bản khóa học'),
     ('course.manage', 'Quản lý khóa học (sửa/xoá)'),
+
+    ('section.create', 'Tạo chương mới'),
+    ('section.manage', 'Quản lý chương (sửa/xóa)'),
 
     ('lesson.create', 'Tạo bài học mới trong khóa học'),
     ('lesson.manage', 'Quản lý bài học (sửa/xoá/sắp xếp)'),
-  
-    ('quiz.create', 'Tạo bài kiểm tra/quiz'),
-    ('quiz.manage', 'Quản lý bài kiểm tra (sửa/xoá)'),
-    ('assignment.submit', 'Nộp bài tập'),
-    ('assignment.grade', 'Chấm điểm bài tập của học viên'),
 
     ('enrollment.manage', 'Quản lý ghi danh học viên (thêm/xoá thủ công)'),
     ('enrollment.self', 'Tự đăng ký/huỷ đăng ký khóa học'),

@@ -51,3 +51,14 @@ func UserIDFromContext(c *gin.Context) (uuid.UUID, bool) {
 	id, ok := val.(uuid.UUID)
 	return id, ok
 }
+
+func RequireServiceAuth(apiKey string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		key := c.GetHeader("X-Internal-Api-Key")
+		if key == "" || key != apiKey {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized service call"})
+			return
+		}
+		c.Next()
+	}
+}
