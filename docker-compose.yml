@@ -71,6 +71,42 @@ services:
     networks:
       - learning-network
 
+  learning:
+    build:
+      context: ./services/learning
+    env_file:
+      - ./services/learning/.env
+    environment:
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/2
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres-learning:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - learning-network
+
+  postgres-learning:
+    image: postgres:17
+    env_file:
+      - ./services/learning/.env
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_learning_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d learning_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - learning-network
+
   redis:
     image: redis:8
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
@@ -91,6 +127,7 @@ services:
 volumes:
   postgres_identity_data:
   postgres_course_data:
+  postgres_learning_data:
   redis_data:
 
 networks:
